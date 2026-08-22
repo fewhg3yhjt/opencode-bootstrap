@@ -1,0 +1,9 @@
+{
+  "name": "opencode-config",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.18.0",
+    "@slkiser/opencode-quota": "^4.8.2"
+  }
+}
