@@ -2,10 +2,12 @@
 
 把一台 x86-64 Linux 主机上的 OpenCode 运行环境，完整、可复现地搬到另一台同架构主机。覆盖：skills、全局指令（AGENTS.md）、opencode / quota 配置、quota 插件（含原生 better-sqlite3）、web 服务、systemd 常驻。
 
+📚 配套文档（部署 / 性能排障 / 运维）：https://github.com/fewhg3yhjt/opencode-wiki-public
+
 ## 适用前提
 - 目标机：x86-64 Linux（与源机架构一致；ARM 需改用官方按架构安装包）
 - 目标机已 / 将由本脚本安装 opencode（npm 全局 `opencode-ai`，版本 1.18.x）
-- 能访问 GitHub（skills / wiki 仓；private 仓需 PAT）
+- 能访问 GitHub（skills / wiki 已 public，匿名 clone 即可）
 - 有 sudo 权限
 
 ## 本仓结构
@@ -24,27 +26,58 @@ opencode-bootstrap/
 ```
 
 ## 用法
-将本仓库传到目标机（任选其一）：`scp -r opencode-bootstrap 目标机:~/`、或推到 GitHub 后 `git clone`。然后：
+将本仓库传到目标机（任选其一）：`scp -r opencode-bootstrap 目标机:~/`、或 `git clone https://github.com/fewhg3yhjt/opencode-bootstrap.git`。然后：
 ```bash
 cd opencode-bootstrap
 
-# 可选：沿用源机 web 密码（不填则自动生成随机密码）
-export OPCODE_PASSWORD=旧密码
+# 可选：固定 web 密码（不填则自动生成随机密码并回显）
+export OPCODE_PASSWORD=自定强密码
 
-# 可选：private 仓用 PAT 拉取
-export SKILLS_REPO=https://<PAT>@github.com/fewhg3yhjt/opencode-skills.git
-# export WIKI_REPO=https://<PAT>@github.com/fewhg3yhjt/opencode-wiki.git
+# 可选：指定文档仓（默认即下方 public 地址）
+# export WIKI_REPO=https://github.com/fewhg3yhjt/opencode-wiki-public.git
 
 ./setup.sh
 ```
 脚本幂等，可重复运行。
 
+## 完整部署流程（新机从零到 web 可访问）
+适用：一台干净的 x86-64 Linux（Ubuntu/Debian），具备 sudo 与联网。
+
+```bash
+# 1) 取仓库（public，可匿名 clone）
+git clone https://github.com/fewhg3yhjt/opencode-bootstrap.git
+cd opencode-bootstrap
+
+# 2) （可选）固定 web 密码；不设则自动随机生成并回显
+export OPCODE_PASSWORD='自定强密码'
+
+# 3) 一键还原环境（幂等，可重跑）
+./setup.sh
+#    脚本依次：装 Node22 → 装 opencode → 写配置与 quota 插件 → 渲染 systemd → 拉起 web
+#    末尾打印 web 用户名(opencode) 与密码
+```
+
+4) 验证服务
+```bash
+systemctl is-active opencode-web                # 期望 active
+curl -u opencode:密码 http://127.0.0.1:4096/session   # 返回 JSON
+```
+
+5) 浏览器访问：`http://<服务器公网IP>:4096`，用户名 `opencode` + 上面密码。
+   公网暴露务必用强密码；如需 HTTPS，前置 Caddy / Nginx 反代。
+
+6) 配置模型 provider（各人自备 key）
+   opencode 默认不带模型额度。把你的 provider 凭据放入 `~/.opencode-credentials`
+   （或按对应 provider 的登录方式写入），web 界面才能调用模型。详见配套文档。
+
+7) skills 默认已 clone 到 `~/.opencode-skills`；如需同步文档仓：
+   `export WIKI_REPO=https://github.com/fewhg3yhjt/opencode-wiki-public.git`（默认即此）。
+
 ## GitHub HTTPS 认证（踩坑）
-`git clone` 私有仓时会提示 `Username` / `Password`：
+本仓与 skills 均已 public，匿名 `git clone` 即可，无需认证。以下仅当你使用 **private** 仓时才需要：
 - **Username**：GitHub 用户名（如 `fewhg3yhjt`）。
 - **Password**：**不是 GitHub 登录密码**，必须用 Personal Access Token（PAT）——GitHub 自 2021 年起已停用密码认证 HTTPS git，用错会报 `403`。
-- PAT 来源：源机 `~/.pat` 里的那串（与 wiki 同步、建仓同款）；目标机没有就先从源机 `cat ~/.pat` 复制过来。
-- 避免反复输入：克隆前先 `git config --global credential.helper store`，凭据会缓存，后续 setup.sh 拉 skills 也免问。
+- 避免反复输入：克隆前先 `git config --global credential.helper store`，凭据会缓存。
 - 若目标机已配 SSH key 并加进 GitHub，可改用 `git clone git@github.com:fewhg3yhjt/opencode-bootstrap.git` 免密。
 
 ## setup.sh 做了什么
@@ -74,4 +107,4 @@ curl -u opencode:密码 http://127.0.0.1:4096/session   # 返回 JSON
 浏览器开 `http://<目标机IP>:4096` 用用户名 `opencode` + 密码登录。
 
 ---
-相关：安装 / 性能排障见 `opencode-wiki` 仓的 `public/guides/cloud-deploy-opencode.md`。
+📚 完整文档（部署 / 性能 / 运维）：https://github.com/fewhg3yhjt/opencode-wiki-public
