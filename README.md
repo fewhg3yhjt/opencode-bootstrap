@@ -39,6 +39,14 @@ export SKILLS_REPO=https://<PAT>@github.com/fewhg3yhjt/opencode-skills.git
 ```
 脚本幂等，可重复运行。
 
+## GitHub HTTPS 认证（踩坑）
+`git clone` 私有仓时会提示 `Username` / `Password`：
+- **Username**：GitHub 用户名（如 `fewhg3yhjt`）。
+- **Password**：**不是 GitHub 登录密码**，必须用 Personal Access Token（PAT）——GitHub 自 2021 年起已停用密码认证 HTTPS git，用错会报 `403`。
+- PAT 来源：源机 `~/.pat` 里的那串（与 wiki 同步、建仓同款）；目标机没有就先从源机 `cat ~/.pat` 复制过来。
+- 避免反复输入：克隆前先 `git config --global credential.helper store`，凭据会缓存，后续 setup.sh 拉 skills 也免问。
+- 若目标机已配 SSH key 并加进 GitHub，可改用 `git clone git@github.com:fewhg3yhjt/opencode-bootstrap.git` 免密。
+
 ## setup.sh 做了什么
 1. 克隆 `~/.opencode-skills`（全局 skill + AGENTS.md 指令）；可选克隆 `~/wiki`
 2. 确保 Node ≥ 22（quota 插件硬要求，否则用 NodeSource 装 22）
