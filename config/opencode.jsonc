@@ -1,0 +1,24 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "skills": {
+    "paths": ["~/.opencode-skills"]
+  },
+  "instructions": ["__HOME__/.opencode-skills/AGENTS.md"],
+  "plugin": [
+    "@slkiser/opencode-quota"
+  ],
+  "provider": {
+    "opencode-go": {}
+  },
+  "compaction": {
+    "auto": true,
+    "keep": { "tokens": 8000 },
+    "buffer": 20000
+  },
+  "models": {
+    "deepseek-v4-flash": {
+      "context": 200000,
+      "output": 8192
+    }
+  }
+}
