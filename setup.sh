@@ -8,6 +8,9 @@
 #   ./setup.sh
 set -euo pipefail
 
+# 脚本自身所在目录（绝对路径），不依赖当前工作目录
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 SKILLS_REPO="${SKILLS_REPO:-https://github.com/fewhg3yhjt/opencode-skills.git}"
 WIKI_REPO="${WIKI_REPO:-}"
 PORT="${OPCODE_PORT:-4096}"
@@ -52,10 +55,10 @@ OPCODE_BIN="$(command -v opencode || echo /usr/bin/opencode)"
 
 echo "==> 4. 写入配置"
 mkdir -p "$HOME/.config/opencode/opencode-quota"
-cp "$(dirname "$0")/config/opencode.jsonc" "$HOME/.config/opencode/opencode.jsonc"
-cp "$(dirname "$0")/config/tui.jsonc" "$HOME/.config/opencode/tui.jsonc"
-cp "$(dirname "$0")/config/opencode-quota/quota-toast.jsonc" "$HOME/.config/opencode/opencode-quota/quota-toast.jsonc"
-cp "$(dirname "$0")/config/package.json" "$HOME/.config/opencode/package.json"
+cp "$SCRIPT_DIR/config/opencode.jsonc" "$HOME/.config/opencode/opencode.jsonc"
+cp "$SCRIPT_DIR/config/tui.jsonc" "$HOME/.config/opencode/tui.jsonc"
+cp "$SCRIPT_DIR/config/opencode-quota/quota-toast.jsonc" "$HOME/.config/opencode/opencode-quota/quota-toast.jsonc"
+cp "$SCRIPT_DIR/config/package.json" "$HOME/.config/opencode/package.json"
 sed -i "s|__HOME__|$HOME|g" "$HOME/.config/opencode/opencode.jsonc"
 
 echo "==> 5. 安装插件 (含 better-sqlite3 原生编译, 需 build 工具)"
@@ -65,8 +68,15 @@ npm config set registry https://registry.npmmirror.com >/dev/null 2>&1 || true
 npm install
 
 echo "==> 6. 部署 systemd 服务"
+SYSTEMD_TPL="$SCRIPT_DIR/systemd/opencode-web.service"
+if [ ! -f "$SYSTEMD_TPL" ]; then
+  echo "错误: 未找到 systemd 模板 $SYSTEMD_TPL" >&2
+  echo "请确认在仓库根目录运行, 且已完整 clone (仓库需含 systemd/opencode-web.service)" >&2
+  echo "如 clone 不完整, 先: rm -rf opencode-bootstrap && git clone git@github.com:fewhg3yhjt/opencode-bootstrap.git" >&2
+  exit 1
+fi
 sudo sed -e "s|__USER__|$USER_NAME|g" -e "s|__HOME__|$HOME_DIR|g" -e "s|__PASSWORD__|$PASSWORD|g" -e "s|__OPCODE_BIN__|$OPCODE_BIN|g" -e "s|__PORT__|$PORT|g" \
-  "$(dirname "$0")/systemd/opencode-web.service" > /etc/systemd/system/opencode-web.service
+  "$SYSTEMD_TPL" > /etc/systemd/system/opencode-web.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now opencode-web
 
