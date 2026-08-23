@@ -44,7 +44,7 @@ cd opencode-bootstrap
 # 3) 一键还原环境（幂等，可重跑）
 #    web 密码无需手动设置——脚本自动生成随机密码并打印在末尾
 #    （如需固定，可先 export OPCODE_PASSWORD='自定强密码'）
-./setup.sh
+bash setup.sh
 #    脚本依次：装 Node22 → 装 opencode → 写配置与 quota 插件 → 渲染 systemd → 拉起 web
 #    末尾打印 web 用户名(opencode) 与密码
 ```
