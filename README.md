@@ -73,6 +73,38 @@ curl -u opencode:密码 http://127.0.0.1:4096/session   # 返回 JSON
 7) skills 默认已 clone 到 `~/.opencode-skills`；如需同步文档仓：
    `export WIKI_REPO=https://github.com/fewhg3yhjt/opencode-wiki-public.git`（默认即此）。
 
+## 网络受限：GitHub 443 不通时怎么办
+默认的 `git clone https://github.com/...` 走 HTTPS 443。若目标机连不上 `github.com:443`（常见于国内/受限网络，表现为 clone 卡在 `Cloning into...` 或报错 `Failed to connect to github.com port 443`），说明 HTTPS 不通——但 **SSH 的 22 端口通常放行**。改用以下任一方式：
+
+### 方式 A：SSH clone（推荐，国内最稳）
+1. 生成密钥——**文件名必须用默认 `id_ed25519`**，否则 git 不会自动使用它；生成时若设了 passphrase，clone 时会提示输入一次：
+   ```bash
+   ssh-keygen -t ed25519 -C "$(hostname)"
+   ```
+2. 把公钥 `~/.ssh/id_ed25519.pub` 内容加到你的 GitHub 账号：
+   Settings → SSH and GPG keys → New SSH key（这是**账号级**设置，不是仓库级；整个过程不需要仓库主人提供任何私人信息）。
+3. 测试并 clone：
+   ```bash
+   ssh -T git@github.com          # 应返回成功问候
+   git clone git@github.com:fewhg3yhjt/opencode-bootstrap.git
+   ```
+   > 若私钥用了自定义文件名（如 `yes`），要么 `mv` 改成 `id_ed25519`，要么在 `~/.ssh/config` 写 `Host github.com` + `IdentityFile ~/.ssh/你的文件名`。
+
+### 方式 B：GitHub 代理镜像（若目标机可访问镜像站）
+```bash
+git clone https://ghproxy.com/https://github.com/fewhg3yhjt/opencode-bootstrap.git
+# 或 https://gitclone.com/github.com/fewhg3yhjt/opencode-bootstrap.git
+```
+镜像站可用性不稳定，按实际能连通的选。
+
+### 方式 C：完全不依赖 GitHub（scp tarball）
+若目标机与源机可 SSH 互访，直接取源机打包好的 tar 包：
+```bash
+scp user@<源机IP>:/path/opencode-bootstrap.tar.gz .
+tar xzf opencode-bootstrap.tar.gz
+cd opencode-bootstrap && ./setup.sh
+```
+
 ## GitHub HTTPS 认证（踩坑）
 本仓与 skills 均已 public，匿名 `git clone` 即可，无需认证。以下仅当你使用 **private** 仓时才需要：
 - **Username**：GitHub 用户名（如 `fewhg3yhjt`）。
