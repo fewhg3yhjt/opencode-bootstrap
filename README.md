@@ -74,9 +74,9 @@ curl -u opencode:密码 http://127.0.0.1:4096/session   # 返回 JSON
      `OPENCODE_SERVER_USERNAME` 即登录账户，`OPENCODE_SERVER_PASSWORD` 即密码。
    - 公网暴露务必用强密码；如需 HTTPS，前置 Caddy / Nginx 反代。
 
-7) 配置模型 provider（各人自备 key）
-   opencode 默认不带模型额度。把你的 provider 凭据放入 `~/.opencode-credentials`
-   （或按对应 provider 的登录方式写入），web 界面才能调用模型。详见配套文档。
+7) 配置模型 provider
+   `opencode-go` 是 OpenCode 官方 provider，**无需自备 key**——安装后默认即可用（走 OpenCode 账户体系），所以 web 界面能直接对话。
+   若改用其它 provider（自建 / 第三方 API），再把对应凭据放入 `~/.opencode-credentials`（或按该 provider 的登录方式写入）。详见配套文档。
 
 8) skills 默认已 clone 到 `~/.opencode-skills`；如需同步文档仓：
    `export WIKI_REPO=https://github.com/fewhg3yhjt/opencode-wiki-public.git`（默认即此）。
