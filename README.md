@@ -32,17 +32,18 @@ opencode-bootstrap/
 # 1) 配置 GitHub SSH 访问（仅需一次）
 ssh-keygen -t ed25519 -C "$(hostname)"      # 一路回车，生成 ~/.ssh/id_ed25519
 cat ~/.ssh/id_ed25519.pub                   # 复制输出内容
-#   打开 GitHub → Settings → SSH and GPG keys → New SSH key → 粘贴保存
+#   把公钥加到 GitHub 账号（二选一）：
+#   网页：GitHub → Settings → SSH and GPG keys → New SSH key → 粘贴保存
+#   命令行：gh ssh-key add ~/.ssh/id_ed25519.pub
 ssh -T git@github.com                       # 应返回成功问候
 
-# 2) 取仓库
+# 2) 取仓库（若已存在旧目录，先 rm -rf opencode-bootstrap）
 git clone git@github.com:fewhg3yhjt/opencode-bootstrap.git
 cd opencode-bootstrap
 
-# 3) （可选）固定 web 密码；不设则自动随机生成并回显
-export OPCODE_PASSWORD='自定强密码'
-
-# 4) 一键还原环境（幂等，可重跑）
+# 3) 一键还原环境（幂等，可重跑）
+#    web 密码无需手动设置——脚本自动生成随机密码并打印在末尾
+#    （如需固定，可先 export OPCODE_PASSWORD='自定强密码'）
 ./setup.sh
 #    脚本依次：装 Node22 → 装 opencode → 写配置与 quota 插件 → 渲染 systemd → 拉起 web
 #    末尾打印 web 用户名(opencode) 与密码
