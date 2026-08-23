@@ -7,7 +7,7 @@
 ## 适用前提
 - 目标机：x86-64 Linux（与源机架构一致；ARM 需改用官方按架构安装包）
 - 目标机已 / 将由本脚本安装 opencode（npm 全局 `opencode-ai`，版本 1.18.x）
-- 能访问 GitHub（skills / wiki 已 public，匿名 clone 即可）
+- 已配置 GitHub SSH 访问（见下方「完整部署流程」第 1 步）
 - 有 sudo 权限
 
 ## 本仓结构
@@ -25,92 +25,44 @@ opencode-bootstrap/
     └── opencode-web.service      # web 服务 unit 模板
 ```
 
-## 用法
-将本仓库传到目标机（任选其一）：`scp -r opencode-bootstrap 目标机:~/`、或 `git clone https://github.com/fewhg3yhjt/opencode-bootstrap.git`。然后：
-```bash
-cd opencode-bootstrap
-
-# 可选：固定 web 密码（不填则自动生成随机密码并回显）
-export OPCODE_PASSWORD=自定强密码
-
-# 可选：指定文档仓（默认即下方 public 地址）
-# export WIKI_REPO=https://github.com/fewhg3yhjt/opencode-wiki-public.git
-
-./setup.sh
-```
-脚本幂等，可重复运行。
-
 ## 完整部署流程（新机从零到 web 可访问）
 适用：一台干净的 x86-64 Linux（Ubuntu/Debian），具备 sudo 与联网。
 
 ```bash
-# 1) 取仓库（public，可匿名 clone）
-git clone https://github.com/fewhg3yhjt/opencode-bootstrap.git
+# 1) 配置 GitHub SSH 访问（仅需一次）
+ssh-keygen -t ed25519 -C "$(hostname)"      # 一路回车，生成 ~/.ssh/id_ed25519
+cat ~/.ssh/id_ed25519.pub                   # 复制输出内容
+#   打开 GitHub → Settings → SSH and GPG keys → New SSH key → 粘贴保存
+ssh -T git@github.com                       # 应返回成功问候
+
+# 2) 取仓库
+git clone git@github.com:fewhg3yhjt/opencode-bootstrap.git
 cd opencode-bootstrap
 
-# 2) （可选）固定 web 密码；不设则自动随机生成并回显
+# 3) （可选）固定 web 密码；不设则自动随机生成并回显
 export OPCODE_PASSWORD='自定强密码'
 
-# 3) 一键还原环境（幂等，可重跑）
+# 4) 一键还原环境（幂等，可重跑）
 ./setup.sh
 #    脚本依次：装 Node22 → 装 opencode → 写配置与 quota 插件 → 渲染 systemd → 拉起 web
 #    末尾打印 web 用户名(opencode) 与密码
 ```
 
-4) 验证服务
+5) 验证服务
 ```bash
 systemctl is-active opencode-web                # 期望 active
 curl -u opencode:密码 http://127.0.0.1:4096/session   # 返回 JSON
 ```
 
-5) 浏览器访问：`http://<服务器公网IP>:4096`，用户名 `opencode` + 上面密码。
+6) 浏览器访问：`http://<服务器公网IP>:4096`，用户名 `opencode` + 上面密码。
    公网暴露务必用强密码；如需 HTTPS，前置 Caddy / Nginx 反代。
 
-6) 配置模型 provider（各人自备 key）
+7) 配置模型 provider（各人自备 key）
    opencode 默认不带模型额度。把你的 provider 凭据放入 `~/.opencode-credentials`
    （或按对应 provider 的登录方式写入），web 界面才能调用模型。详见配套文档。
 
-7) skills 默认已 clone 到 `~/.opencode-skills`；如需同步文档仓：
+8) skills 默认已 clone 到 `~/.opencode-skills`；如需同步文档仓：
    `export WIKI_REPO=https://github.com/fewhg3yhjt/opencode-wiki-public.git`（默认即此）。
-
-## 网络受限：GitHub 443 不通时怎么办
-默认的 `git clone https://github.com/...` 走 HTTPS 443。若目标机连不上 `github.com:443`（常见于国内/受限网络，表现为 clone 卡在 `Cloning into...` 或报错 `Failed to connect to github.com port 443`），说明 HTTPS 不通——但 **SSH 的 22 端口通常放行**。改用以下任一方式：
-
-### 方式 A：SSH clone（推荐，国内最稳）
-1. 生成密钥——**文件名必须用默认 `id_ed25519`**，否则 git 不会自动使用它；生成时若设了 passphrase，clone 时会提示输入一次：
-   ```bash
-   ssh-keygen -t ed25519 -C "$(hostname)"
-   ```
-2. 把公钥 `~/.ssh/id_ed25519.pub` 内容加到你的 GitHub 账号：
-   Settings → SSH and GPG keys → New SSH key（这是**账号级**设置，不是仓库级；整个过程不需要仓库主人提供任何私人信息）。
-3. 测试并 clone：
-   ```bash
-   ssh -T git@github.com          # 应返回成功问候
-   git clone git@github.com:fewhg3yhjt/opencode-bootstrap.git
-   ```
-   > 若私钥用了自定义文件名（如 `yes`），要么 `mv` 改成 `id_ed25519`，要么在 `~/.ssh/config` 写 `Host github.com` + `IdentityFile ~/.ssh/你的文件名`。
-
-### 方式 B：GitHub 代理镜像（若目标机可访问镜像站）
-```bash
-git clone https://ghproxy.com/https://github.com/fewhg3yhjt/opencode-bootstrap.git
-# 或 https://gitclone.com/github.com/fewhg3yhjt/opencode-bootstrap.git
-```
-镜像站可用性不稳定，按实际能连通的选。
-
-### 方式 C：完全不依赖 GitHub（scp tarball）
-若目标机与源机可 SSH 互访，直接取源机打包好的 tar 包：
-```bash
-scp user@<源机IP>:/path/opencode-bootstrap.tar.gz .
-tar xzf opencode-bootstrap.tar.gz
-cd opencode-bootstrap && ./setup.sh
-```
-
-## GitHub HTTPS 认证（踩坑）
-本仓与 skills 均已 public，匿名 `git clone` 即可，无需认证。以下仅当你使用 **private** 仓时才需要：
-- **Username**：GitHub 用户名（如 `fewhg3yhjt`）。
-- **Password**：**不是 GitHub 登录密码**，必须用 Personal Access Token（PAT）——GitHub 自 2021 年起已停用密码认证 HTTPS git，用错会报 `403`。
-- 避免反复输入：克隆前先 `git config --global credential.helper store`，凭据会缓存。
-- 若目标机已配 SSH key 并加进 GitHub，可改用 `git clone git@github.com:fewhg3yhjt/opencode-bootstrap.git` 免密。
 
 ## setup.sh 做了什么
 1. 克隆 `~/.opencode-skills`（全局 skill + AGENTS.md 指令）；可选克隆 `~/wiki`
