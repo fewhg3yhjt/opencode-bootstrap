@@ -49,14 +49,30 @@ bash setup.sh
 #    末尾打印 web 用户名(opencode) 与密码
 ```
 
-5) 验证服务
+4) 验证服务
 ```bash
 systemctl is-active opencode-web                # 期望 active
 curl -u opencode:密码 http://127.0.0.1:4096/session   # 返回 JSON
 ```
 
-6) 浏览器访问：`http://<服务器公网IP>:4096`，用户名 `opencode` + 上面密码。
-   公网暴露务必用强密码；如需 HTTPS，前置 Caddy / Nginx 反代。
+5) 放通端口（否则浏览器连不上）
+   - 云服务器：在厂商控制台「安全组」放通入站 TCP `4096`（来源按需限制；公网暴露务必用强密码）。
+   - 系统防火墙（若启用）：
+     ```bash
+     sudo ufw allow 4096/tcp
+     # 或 firewalld：
+     # sudo firewall-cmd --add-port=4096/tcp --permanent && sudo firewall-cmd --reload
+     ```
+
+6) 浏览器访问与登录
+   打开 `http://<服务器公网IP>:4096`。
+   - 用户名：`opencode`（固定）
+   - 密码：在 `setup.sh` 末尾已回显；若已忘记，从部署好的 service 文件读取：
+     ```bash
+     sudo grep -E 'OPENCODE_SERVER_USERNAME|OPENCODE_SERVER_PASSWORD' /etc/systemd/system/opencode-web.service
+     ```
+     `OPENCODE_SERVER_USERNAME` 即登录账户，`OPENCODE_SERVER_PASSWORD` 即密码。
+   - 公网暴露务必用强密码；如需 HTTPS，前置 Caddy / Nginx 反代。
 
 7) 配置模型 provider（各人自备 key）
    opencode 默认不带模型额度。把你的 provider 凭据放入 `~/.opencode-credentials`
